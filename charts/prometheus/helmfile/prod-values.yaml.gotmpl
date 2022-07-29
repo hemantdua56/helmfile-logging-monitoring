@@ -1,0 +1,76 @@
+# rbac:
+#   create: {{ .Values.charts.prometheus.alertmanager }}
+alertmanager:
+  enabled: {{ .Values.charts.prometheusDev.alertmanager }}
+
+nodeExporter:
+  enabled: {{ .Values.charts.prometheusDev.nodeexporter }}
+
+
+
+server:
+  enabled: true
+  extraSecretMounts: 
+        - name: prometheus-sa-volume
+          secretName: prometheus-prod-secret
+          mountPath: /etc/config/secret    
+{{- if .Values._.ingress.enabled }}  
+  ingress:
+    enabled: true
+    annotations: 
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":
+        { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-north-1:009431724784:certificate/af52f4c0-3880-4991-9fd6-9144e1ec4043
+      alb.ingress.kubernetes.io/group.name: shared
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+      alb.ingress.kubernetes.io/scheme: internal
+      alb.ingress.kubernetes.io/target-type: ip    
+    extraLabels: {}
+    hosts: 
+        - {{ env "PROMETHEUS_PROD_ENDPOINT" }}
+    extraPaths: []
+    tls: []
+{{- end }}
+
+
+pushgateway:
+  enabled: false
+
+
+alertmanagerFiles:
+  alertmanager.yml:
+    global:
+      resolve_timeout: 1m
+      slack_api_url: {{ env "SLACK_API_URL"}}
+    receivers:
+    - name: 'slack-notifications'
+      slack_configs:
+      - channel: {{ env "SLACK_CHANNEL" }}
+        send_resolved: true
+        icon_url: https://avatars3.githubusercontent.com/u/3380462
+        title: |-
+{{ readFile "title.yaml" | nindent 10 }}
+        text: >-
+{{ readFile "text.yaml" | nindent 10 }}
+    
+    route:
+      group_by:
+      - alertname
+      - cluster
+      - service
+      - kubernetes_namespace
+      - namespace
+      group_interval: 5m
+      group_wait: 10s
+      receiver: slack-notifications
+      repeat_interval: 3m
+      routes:
+      - continue: true
+        match_re:
+          alertname: ServiceMemoryUsage_>_90|ServiceMemoryUsage_>_80|MysqlDown|MysqlTooManyConnections|MysqlHighThreadsRunning|MysqlSlowQueries|MysqlRestarted|ServiceNotUpdated|ServiceDown|ServiceFrequentlyRestarting|ServicePodNotHealthy|ServicePodCrashLooping|NodeNotReady|NodeMemoryPressure|NodeDiskPressure|NodeOutOfDisk|NodeOutOfCapacity|PersistentvolumeclaimPending|VolumeOutOfDiskSpace|VolumeFullInFourDays|PersistentvolumeError
+        receiver: slack-notifications
+
+
+serverFiles: 
+{{ readFile "rules-prod.yaml" | nindent 2 }}

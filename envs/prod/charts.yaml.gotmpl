@@ -1,0 +1,33 @@
+charts:
+  ## Metrics
+  grafana:
+    enabled: false
+
+  prometheus:
+    enabled: true
+    server: false
+    alertmanager: false
+
+
+  prometheusDev:
+    enabled: false
+
+  prometheusProd:
+    enabled: false
+
+  metricServer:
+    enabled: true
+
+
+  ## Logging
+  ## Generally speaking you'll only enable one set of either Loki+Promtail, or EL
+  
+  fluentbit:
+    enabled: true   
+
+  kibana:
+    enabled: false
+  
+  elasticsearch:
+    enabled: false
+  

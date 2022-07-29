@@ -1,0 +1,27 @@
+config:
+{{ readFile "common-config.yaml" | nindent 2 }}
+  outputs: |
+    [OUTPUT]
+        Name es
+        Match kube.*
+        Host {{ env "ELASTICSEARCH_URL" }}
+        Port 80
+        Logstash_Format On
+        Logstash_Prefix {{ env "ENV_NAME" }}
+        Retry_Limit False
+    [OUTPUT]
+        Name es
+        Match host.*
+        Host {{ env "ELASTICSEARCH_URL" }}
+        Port 80
+        Logstash_Format On
+        Logstash_Prefix node-{{ env "ENV_NAME" }}
+        Retry_Limit False
+  ## https://docs.fluentbit.io/manual/pipeline/parsers
+  customParsers: |
+    [PARSER]
+        Name docker_no_time
+        Format json
+        Time_Keep Off
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L

@@ -1,0 +1,125 @@
+## Cluster Operations
+charts:
+
+  ## Metrics
+  grafana:
+    enabled: true
+    repository:
+      name: grafana 
+      url: https://grafana.github.io/helm-charts
+    name: grafana
+    namespace: monitoring
+    chart: grafana/grafana
+    version: 5.0.5
+    values:
+      - charts/grafana/helmfile/values.yaml.gotmpl
+    
+
+  metricServer:
+    enabled: true
+    repository:
+      name: bitnami 
+      url: https://charts.bitnami.com/bitnami
+    name: metrics-server
+    namespace: monitoring
+    chart: bitnami/metrics-server
+    version: 5.9.2
+    values:
+      - charts/metricServer/helmfile/values.yaml.gotmpl
+
+  prometheus:
+    enabled: true
+    repository:
+      name: prometheus-community
+      url: https://prometheus-community.github.io/helm-charts
+    name: prometheus
+    namespace: monitoring
+    chart: prometheus-community/prometheus
+    version: 13.8.0
+    alertmanager: true
+    nodeexporter: true
+    server: true
+    values:
+      - charts/prometheus/helmfile/values.yaml.gotmpl
+
+  prometheusDev:
+    enabled: true
+    repository:
+      name: prometheus-community
+      url: https://prometheus-community.github.io/helm-charts
+    name: prometheus-dev
+    namespace: monitoring-dev
+    chart: prometheus-community/prometheus
+    version: 13.8.0
+    alertmanager: false
+    nodeexporter: false
+    values:
+      - charts/prometheus/helmfile/dev-values.yaml.gotmpl
+
+
+  prometheusProd:
+    enabled: true
+    repository:
+      name: prometheus-community
+      url: https://prometheus-community.github.io/helm-charts
+    name: prometheus-prod
+    namespace: monitoring-prod
+    chart: prometheus-community/prometheus
+    version: 13.8.0
+    alertmanager: false
+    nodeexporter: false
+    values:
+      - charts/prometheus/helmfile/prod-values.yaml.gotmpl
+
+  prometheus-blackbox-exporter:
+    enabled: false
+    repository:
+      name: prometheus-community
+      url: https://prometheus-community.github.io/helm-charts
+    name: prometheus-blackbox-exporter
+    namespace: monitoring
+    chart: prometheus-community/prometheus-blackbox-exporter
+    version: 5.0.3
+    values:
+      - charts/blackbox/helmfile/values.yaml.gotmpl      
+
+  ## Logging
+
+  elasticsearch:
+    enabled: false
+    repository:
+      url: https://helm.elastic.co
+      name: elastic
+    name: elasticsearch
+    namespace: logging
+    chart: elastic/elasticsearch
+    version: 7.13.4
+    values:
+      - charts/elasticsearch/helmfile/values.yaml.gotmpl
+    raw:
+      - charts/elasticsearch/helmfile/secrets.yaml.gotmpl      
+
+  kibana:
+    enabled: false
+    repository:
+      url: https://helm.elastic.co
+      name: elastic
+    name: kibana
+    namespace: logging
+    chart: elastic/kibana
+    version: 7.13.4
+    values:
+      - charts/kibana/helmfile/values.yaml.gotmpl
+
+  fluentbit:
+    enabled: false
+    repository:
+      name: fluent
+      url: https://fluent.github.io/helm-charts
+    name: fluentbit
+    namespace: logging
+    chart: fluent/fluent-bit
+    version: 0.15.15
+    values:
+      - charts/fluentbit/helmfile/values.yaml.gotmpl
+

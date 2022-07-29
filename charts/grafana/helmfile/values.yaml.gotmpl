@@ -1,0 +1,89 @@
+persistence:
+  enabled: true
+
+{{- if .Values._.ingress.enabled }}
+ingress:
+  enabled: true
+  hosts: [{{ env "GRAFANA_DNS" }}]
+  path: "/*"
+  # tls:
+  #   - secretName: grafana-tls
+  #     hosts:
+  #       - {{ env "GRAFANA_DNS" }}
+  annotations: 
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":
+      { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-north-1:009431724784:certificate/af52f4c0-3880-4991-9fd6-9144e1ec4043
+    alb.ingress.kubernetes.io/group.name: shared
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+{{- end }}
+
+adminPassword: {{ requiredEnv "GRAFANA_ADMIN_PASSWORD" }}
+
+grafana.ini:
+  server:
+    root_url: {{ env "GRAFANA_URL" }}
+{{- if eq (env "AUTH_TYPE") "uaa" }}
+  auth.generic_oauth:
+    name: uaa
+    enabled: true
+    scopes: openid profile email
+    client_id: {{ env "GRAFANA_OIDC_CLIENT_ID" }}
+    client_secret: {{ env "GRAFANA_OIDC_CLIENT_SECRET" }}
+    auth_url: {{ env "GRAFANA_OIDC_AUTH_URL" }}
+    token_url: {{ env "GRAFANA_OIDC_TOKEN_URL" }}
+    api_url: {{ env "GRAFANA_OIDC_USERINFO_URL" }}
+{{- end }}
+
+datasources:
+  datasources.yaml:
+   apiVersion: 1
+   datasources:
+   - name: {{ env "ENV_NAME" }}-prometheus
+     type: prometheus
+     url: http://prometheus-server.{{ .Values.charts.prometheus.namespace }}
+     access: proxy
+     isDefault: true
+{{- if eq (env "ENV_NAME") "shared" }}     
+   - name: dev-prometheus
+     type: prometheus
+     url: http://prometheus-dev-server.monitoring-dev
+     access: proxy
+     isDefault: false
+   - name: prod-prometheus
+     type: prometheus
+     url: http://prometheus-prod-server.monitoring-prod
+     access: proxy
+     isDefault: false     
+{{- end }}
+
+dashboardProviders:
+ dashboardproviders.yaml:
+   apiVersion: 1
+   providers:
+   - name: 'default'
+     orgId: 1
+     folder: ''
+     type: file
+     disableDeletion: false
+     editable: true
+     options:
+       path: /var/lib/grafana/dashboards/default
+
+dashboards:
+  default:
+    prometheus-stats:
+      gnetId: 2
+      revision: 2
+      datasource: {{ env "ENV_NAME" }}-prometheus
+    pks-stats:
+      gnetId: 10000
+      revision: 1
+      datasource: {{ env "ENV_NAME" }}-prometheus
+    Node-exporter:
+      gnetId: 12486
+      revision: 1
+      datasource: {{ env "ENV_NAME" }}-prometheus

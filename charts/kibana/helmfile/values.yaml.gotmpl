@@ -1,0 +1,62 @@
+nameOverride: kibana
+fullnameOverride: kibana
+
+elasticsearchHosts: http://elasticsearch-master:9200
+replicas: 1
+
+protocol: http
+service:
+  type: ClusterIP
+  port: 5601
+  httpPortName: http
+
+extraEnvs:
+{{- if env "ELASTICSEARCH_PASSWORD" }}
+  - name: ELASTICSEARCH_USERNAME
+    value: {{ requiredEnv "ELASTICSEARCH_USERNAME" }}
+  - name: ELASTICSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-credentials
+        key: password
+{{- end }}
+
+# kibanaConfig:
+#   kibana.yml: |
+#     server.ssl:
+#       enabled: false
+#       #key: /usr/share/kibana/config/certs/tls.key
+#       #certificate: /usr/share/kibana/config/certs/tls.crt
+#     elasticsearch.ssl:
+#       certificateAuthorities: /usr/share/kibana/config/certs/ca.crt
+#       verificationMode: certificate
+# {{- if eq "uaa" (env "AUTH_TYPE") }}
+#     xpack.security.authc.providers: [oidc, basic]
+#     xpack.security.authc.oidc.realm: "oidc1"
+#     xpack.security.enabled: true
+#     server.xsrf.whitelist: [/api/security/v1/oidc]
+# {{- end }}
+
+# secretMounts:
+#   - name: elastic-certificates
+#     secretName: elastic-certificates
+#     path: /usr/share/kibana/config/certs
+
+{{- if .Values._.ingress.enabled }}
+ingress:
+  enabled: true
+  annotations: 
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":
+      { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-north-1:009431724784:certificate/af52f4c0-3880-4991-9fd6-9144e1ec4043
+    alb.ingress.kubernetes.io/group.name: shared
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip  
+  hosts:
+    - host: {{ env "KIBANA_DNS" }}
+      paths:
+        - path: /*
+  
+{{- end }}
